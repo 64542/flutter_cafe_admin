@@ -14,12 +14,31 @@ class MyCafe {
     }
   }
 
-  Future<QuerySnapshot<Map<String, dynamic>>?> get(
-      {required String collectionName}) async {
+  Future<bool> delete({required String collectionName, required id}) async {
     try {
-      return db.collection(collectionName).get();
+      var result = await db.collection(collectionName).doc(id).delete();
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<dynamic> get({
+    required String collectionName,
+    required String? id,
+    required String? filedName,
+    required String? fildeValue,
+  }) async {
+    try {
+      if (id == null || filedName == null) {
+        return db.collection(collectionName).get();
+      } else if (id != null) {
+        return db.collection(collectionName).doc(id).get();
+      } else
+        return db.collection(collectionName).where(filedName);
     } catch (e) {
       return null;
     }
+    return null;
   }
 }
