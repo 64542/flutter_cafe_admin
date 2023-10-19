@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'my_cafe.dart';
 
@@ -13,17 +14,92 @@ class CafeItem extends StatefulWidget {
 }
 
 class _CafeItemState extends State<CafeItem> {
+  dynamic body = const Text('loading...');
+
+  Future<void> getCategory() async {
+    var datas = myCafe.get(collectionName: categoryCollectionName, id: , filedName: null, fildeValue: null)
+    setState(() {
+      body = FutureBuilder(
+        future: datas,
+        builder: (context, snapshot) {
+          if (snapshot.hasData == true) {
+            var datas = snapshot.data?.docs;
+            if (datas == null) {
+              return const Center(
+                child: Text('empty'),
+              );
+            } else {
+              return ListView.separated(
+                  itemBuilder: (context, index) {
+                    var data = datas[index];
+                    return ListTile(
+                      title: Text(data['categoryName']),
+                      trailing: PopupMenuButton(
+                        onSelected: (value) async {
+                          switch (value) {
+                            case 'modify':
+                              var result = Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        CafeCategoryAddForm(id: data.id),
+                                  ));
+                              break;
+                            case 'delete':
+                              var result = await myCafe.delete(
+                                  collectionName: categoryCollectionName,
+                                  id: data.id);
+                              if (result == true) {
+                                getCategory();
+                              }
+                              break;
+                          }
+                        },
+                        itemBuilder: (context) => [
+                          const PopupMenuItem(
+                            value: 'modify',
+                            child: Text('수정'),
+                          ),
+                          const PopupMenuItem(
+                            value: 'delete',
+                            child: Text('삭제'),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                  separatorBuilder: (context, index) => const Divider(),
+                  itemCount: datas.length);
+            }
+          } else {
+            return const Center(child: Text('loading...'));
+          }
+        },
+      );
+    });
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    getCategory();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: const Text('hi'),
+      body: body,
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
+        onPressed: () async {
+          var result = await Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => const CafeCategoryAddForm(),
+                builder: (context) => CafeCategoryAddForm(id: data.id),
               ));
+          if (result == true) {
+            getCategory();
+          }
         },
         child: const Icon(Icons.add),
       ),
@@ -32,7 +108,8 @@ class _CafeItemState extends State<CafeItem> {
 }
 
 class CafeCategoryAddForm extends StatefulWidget {
-  const CafeCategoryAddForm({super.key});
+  String? id;
+  CafeCategoryAddForm({super.key, required this.id});
 
   @override
   State<CafeCategoryAddForm> createState() => _CafeCategoryAddFormState();
@@ -40,8 +117,28 @@ class CafeCategoryAddForm extends StatefulWidget {
 
 class _CafeCategoryAddFormState extends State<CafeCategoryAddForm> {
   TextEditingController controller = TextEditingController();
-
+  String? id;
   var isUsed = true;
+
+  Future<QuerySnapshot?> getData({required String id}) async {
+    var data = await myCafe.get(
+        collectionName: categoryCollectionName,
+        id: id,
+        filedName: null,
+        fildeValue: null);
+    return data;
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    id = widget.id;
+    if (id != null) {
+      var data = getData(id: id!);
+      print(data);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -57,7 +154,7 @@ class _CafeCategoryAddFormState extends State<CafeCategoryAddForm> {
                 var result = await myCafe.insert(
                     collectionName: categoryCollectionName, data: data);
                 if (result == true) {
-                  Navigator.pop(context);
+                  Navigator.pop(context, true);
                 }
               }
             },
