@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'my_cafe.dart';
 
@@ -17,7 +16,11 @@ class _CafeItemState extends State<CafeItem> {
   dynamic body = const Text('loading...');
 
   Future<void> getCategory() async {
-    var datas = myCafe.get(collectionName: categoryCollectionName, id: , filedName: null, fildeValue: null)
+    var datas = myCafe.get(
+        collectionName: categoryCollectionName,
+        id: null,
+        fieldName: null,
+        fieldValue: null);
     setState(() {
       body = FutureBuilder(
         future: datas,
@@ -38,12 +41,15 @@ class _CafeItemState extends State<CafeItem> {
                         onSelected: (value) async {
                           switch (value) {
                             case 'modify':
-                              var result = Navigator.push(
+                              var result = await Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) =>
                                         CafeCategoryAddForm(id: data.id),
                                   ));
+                              if (result == true) {
+                                getCategory();
+                              }
                               break;
                             case 'delete':
                               var result = await myCafe.delete(
@@ -95,7 +101,7 @@ class _CafeItemState extends State<CafeItem> {
           var result = await Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => CafeCategoryAddForm(id: data.id),
+                builder: (context) => CafeCategoryAddForm(id: null),
               ));
           if (result == true) {
             getCategory();
@@ -120,13 +126,12 @@ class _CafeCategoryAddFormState extends State<CafeCategoryAddForm> {
   String? id;
   var isUsed = true;
 
-  Future<QuerySnapshot?> getData({required String id}) async {
-    var data = await myCafe.get(
-        collectionName: categoryCollectionName,
-        id: id,
-        filedName: null,
-        fildeValue: null);
-    return data;
+  Future<void> getData({required String id}) async {
+    var data = await myCafe.get(collectionName: categoryCollectionName, id: id);
+    setState(() {
+      controller.text = data['categoryName'];
+      isUsed = data['isUsed'];
+    });
   }
 
   @override
@@ -135,8 +140,7 @@ class _CafeCategoryAddFormState extends State<CafeCategoryAddForm> {
     super.initState();
     id = widget.id;
     if (id != null) {
-      var data = getData(id: id!);
-      print(data);
+      getData(id: id!);
     }
   }
 
@@ -150,9 +154,17 @@ class _CafeCategoryAddFormState extends State<CafeCategoryAddForm> {
           TextButton(
             onPressed: () async {
               if (controller.text.isNotEmpty) {
-                var data = {'categoryName': controller.text, 'isUsed': isUsed};
-                var result = await myCafe.insert(
-                    collectionName: categoryCollectionName, data: data);
+                var data = {
+                  'categoryName': controller.text,
+                  'isUsed': isUsed,
+                };
+                var result = id != null
+                    ? await myCafe.update(
+                        collectionName: categoryCollectionName,
+                        id: id!,
+                        data: data)
+                    : await myCafe.insert(
+                        collectionName: categoryCollectionName, data: data);
                 if (result == true) {
                   Navigator.pop(context, true);
                 }

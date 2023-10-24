@@ -25,20 +25,36 @@ class MyCafe {
 
   Future<dynamic> get({
     required String collectionName,
-    required String? id,
-    required String? filedName,
-    required String? fildeValue,
+    String? id,
+    String? fieldName,
+    String? fieldValue,
   }) async {
     try {
-      if (id == null || filedName == null) {
+      if (id == null && fieldName == null) {
         return db.collection(collectionName).get();
       } else if (id != null) {
         return db.collection(collectionName).doc(id).get();
-      } else
-        return db.collection(collectionName).where(filedName);
+      } else if (fieldName != null) {
+        return db
+            .collection(collectionName)
+            .where(fieldName, isEqualTo: fieldValue)
+            .get();
+      }
     } catch (e) {
       return null;
     }
-    return null;
+  }
+
+  Future<bool> update({
+    required String collectionName,
+    required String id,
+    required Map<String, dynamic> data,
+  }) async {
+    try {
+      await db.collection(collectionName).doc(id).update(data);
+      return true;
+    } catch (e) {
+      return false;
+    }
   }
 }
