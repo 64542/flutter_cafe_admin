@@ -36,6 +36,15 @@ class _CafeItemState extends State<CafeItem> {
                   itemBuilder: (context, index) {
                     var data = datas[index];
                     return ListTile(
+                      onTap: () async {
+                        await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => CafeItemList(
+                                id: data.id,
+                              ),
+                            ));
+                      },
                       title: Text(data['categoryName']),
                       trailing: PopupMenuButton(
                         onSelected: (value) async {
@@ -194,6 +203,167 @@ class _CafeCategoryAddFormState extends State<CafeCategoryAddForm> {
                 isUsed = value;
               });
             },
+          )
+        ],
+      ),
+    );
+  }
+}
+
+class CafeItemList extends StatefulWidget {
+  String id;
+  CafeItemList({super.key, required this.id});
+
+  @override
+  State<CafeItemList> createState() => _CafeItemListState();
+}
+
+class _CafeItemListState extends State<CafeItemList> {
+  late String id;
+  dynamic dropdownMenu = const Text('loading..');
+  dynamic itemList = const Text('itemLIst');
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    id = widget.id;
+    getCategory(id);
+  }
+
+  Future<void> getCategory(String id) async {
+    var datas = myCafe.get(collectionName: categoryCollectionName);
+    List<DropdownMenuEntry> entries = [];
+    setState(() {
+      dropdownMenu = FutureBuilder(
+        future: datas,
+        builder: (context, snapshot) {
+          if (snapshot.hasData) {
+            var datas = snapshot.data.docs;
+            for (var data in datas) {
+              entries.add(
+                DropdownMenuEntry(value: data.id, label: data['categoryName']),
+              );
+            }
+            return DropdownMenu(
+              dropdownMenuEntries: entries,
+              initialSelection: id,
+              onSelected: (value) {
+                print('item list');
+              },
+            );
+          } else {
+            return const Text('loading..');
+          }
+        },
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('item list'),
+        actions: [
+          TextButton(
+              onPressed: () {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => CafeItemAddForm(categoryId: id),
+                    ));
+              },
+              child: const Text('+item',
+                  style: TextStyle(
+                    color: Colors.white,
+                  ))),
+        ],
+      ),
+      body: Column(
+        children: [
+          dropdownMenu,
+          const Text('list'),
+        ],
+      ),
+    );
+  }
+}
+
+class CafeItemAddForm extends StatefulWidget {
+  String categoryId;
+  String? itemId;
+  CafeItemAddForm({super.key, required this.categoryId});
+
+  @override
+  State<CafeItemAddForm> createState() => _CafeItemAddFormState();
+}
+
+class _CafeItemAddFormState extends State<CafeItemAddForm> {
+  late String categoryId;
+  String? itemId;
+  TextEditingController controllerTitle = TextEditingController();
+  TextEditingController controllerPrise = TextEditingController();
+  TextEditingController controllerDesc = TextEditingController();
+  bool isSoldOut = false;
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    categoryId = widget.categoryId;
+    itemId = widget.itemId;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('item add form'),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              var data = {
+                'itemName': controllerTitle.text,
+                'itemPrice': int.parse(controllerPrise.text),
+                'itemDesc': controllerDesc.text,
+                'itemIsSoldOut': isSoldOut
+              };
+              var result = await myCafe.insert(
+                  collectionName: itemCollectionName, data: data);
+              if (result == true) {
+                Navigator.pop(context, true);
+              }
+            },
+            child: const Text('Save',
+                style: TextStyle(
+                  color: Colors.white,
+                )),
+          )
+        ],
+      ),
+      body: Column(
+        children: [
+          TextFormField(
+            decoration: const InputDecoration(label: Text('이름')),
+            controller: controllerTitle,
+          ),
+          TextFormField(
+            decoration: const InputDecoration(label: Text('가격')),
+            controller: controllerPrise,
+          ),
+          TextFormField(
+            decoration: const InputDecoration(label: Text('설명')),
+            controller: controllerDesc,
+          ),
+          SwitchListTile(
+            value: isSoldOut,
+            onChanged: (value) {
+              setState(() {
+                isSoldOut = value;
+              });
+            },
+            title: const Text('sold out?'),
           )
         ],
       ),
