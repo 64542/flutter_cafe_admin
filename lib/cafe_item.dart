@@ -305,7 +305,38 @@ class _CafeItemAddFormState extends State<CafeItemAddForm> {
   TextEditingController controllerTitle = TextEditingController();
   TextEditingController controllerPrise = TextEditingController();
   TextEditingController controllerDesc = TextEditingController();
+  TextEditingController controllerOptionName = TextEditingController();
+  TextEditingController controllerOptionValue = TextEditingController();
   bool isSoldOut = false;
+  var options = [];
+  dynamic optionView = const Text('옵션이 없습니다.');
+
+  void showOptionList() {
+    setState(() {
+      optionView = ListView.separated(
+        itemBuilder: (context, index) {
+          var title = options[index]['optionName'];
+          var subTitle =
+              options[index]['optionValue'].toString().replaceAll('\n', '/');
+
+          return ListTile(
+            title: Text(title),
+            subtitle: Text(subTitle),
+            trailing: IconButton(
+                onPressed: () {
+                  options.removeAt(index);
+                  showOptionList();
+                },
+                icon: const Icon(Icons.close)),
+          );
+        },
+        separatorBuilder: (context, index) => const Divider(),
+        itemCount: options.length,
+      );
+    });
+    controllerOptionName.clear();
+    controllerOptionValue.clear();
+  }
 
   @override
   void initState() {
@@ -327,7 +358,9 @@ class _CafeItemAddFormState extends State<CafeItemAddForm> {
                 'itemName': controllerTitle.text,
                 'itemPrice': int.parse(controllerPrise.text),
                 'itemDesc': controllerDesc.text,
-                'itemIsSoldOut': isSoldOut
+                'itemIsSoldOut': isSoldOut,
+                'categoryId': categoryId,
+                'options': options,
               };
               var result = await myCafe.insert(
                   collectionName: itemCollectionName, data: data);
@@ -351,6 +384,7 @@ class _CafeItemAddFormState extends State<CafeItemAddForm> {
           TextFormField(
             decoration: const InputDecoration(label: Text('가격')),
             controller: controllerPrise,
+            keyboardType: TextInputType.number,
           ),
           TextFormField(
             decoration: const InputDecoration(label: Text('설명')),
@@ -364,7 +398,29 @@ class _CafeItemAddFormState extends State<CafeItemAddForm> {
               });
             },
             title: const Text('sold out?'),
-          )
+          ),
+          Expanded(child: optionView),
+          IconButton(
+              onPressed: () {
+                var optionName = controllerOptionName.text;
+                var optionValue = controllerOptionValue.text;
+                if (optionName != '' && optionValue != '') {
+                  var data = {
+                    'optionName': optionName,
+                    'optionValue': optionValue
+                  };
+                  options.add(data);
+                  showOptionList();
+                }
+              },
+              icon: const Icon(Icons.arrow_circle_up)),
+          TextFormField(
+            controller: controllerOptionName,
+          ),
+          TextFormField(
+            controller: controllerOptionValue,
+            maxLines: 10,
+          ),
         ],
       ),
     );
