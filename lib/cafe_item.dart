@@ -330,12 +330,16 @@ class _CafeItemListState extends State<CafeItemList> {
         title: const Text('item list'),
         actions: [
           TextButton(
-              onPressed: () {
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => CafeItemAddForm(categoryId: id),
-                    ));
+              onPressed: () async {
+                var result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => CafeItemAddForm(categoryId: id),
+                  ),
+                );
+                if (result == true) {
+                  getItemList(categoryId: id);
+                }
               },
               child: const Text('+item',
                   style: TextStyle(
