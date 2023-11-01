@@ -482,16 +482,27 @@ class _CafeItemAddFormState extends State<CafeItemAddForm> {
                 'categoryId': categoryId,
                 'options': options,
               };
-              var result = await myCafe.insert(
-                  collectionName: itemCollectionName, data: data);
-              if (result == true) {
+
+              var result = itemId != null
+                  ? await myCafe.update(
+                      collectionName: itemCollectionName,
+                      id: itemId!,
+                      data: data,
+                    )
+                  : await myCafe.insert(
+                      collectionName: itemCollectionName, data: data);
+
+              // var result1 = await myCafe.insert(
+              //     collectionName: itemCollectionName, data: data);
+
+              if (result) {
                 Navigator.pop(context, true);
               }
             },
-            child: const Text('Save',
-                style: TextStyle(
-                  color: Colors.white,
-                )),
+            child: const Text(
+              "Save",
+              style: TextStyle(color: Colors.white),
+            ),
           )
         ],
       ),
