@@ -234,11 +234,14 @@ class _CafeItemListState extends State<CafeItemList> {
 
   Future<void> getItemList({String? categoryId}) async {
     var datas = categoryId == null
-        ? myCafe.get(collectionName: 'cafe-item')
+        ? myCafe.get(
+            collectionName: 'cafe-item',
+          )
         : myCafe.get(
             collectionName: 'cafe-item',
             fieldName: 'categoryId',
-            fieldValue: categoryId);
+            fieldValue: categoryId,
+          );
     setState(() {
       itemList = FutureBuilder(
         future: datas,
@@ -246,44 +249,65 @@ class _CafeItemListState extends State<CafeItemList> {
           if (snapshot.hasData) {
             var items = snapshot.data.docs;
             if (items.length == 0) {
-              return const Text('nothing');
-            } else {
-              return ListView.separated(
-                itemBuilder: (context, index) {
-                  var item = items[index];
-                  return ListTile(
-                    title: Text('${item['itemName']}(${item['itemPrice']})'),
-                    subtitle: Text('${item['options']}'),
-                    trailing: PopupMenuButton(
-                      itemBuilder: (context) => [
-                        PopupMenuItem(
-                          child: const Text('수정'),
-                          onTap: () {
-                            //수정하는 코드를 작성
-                            //CafeItemAddForm을 호출하는데 정보를(id) 불러서 처리
-                          },
-                        ),
-                        PopupMenuItem(
-                          child: const Text('삭제'),
-                          onTap: () async {
-                            await myCafe
-                                .delete(
-                                    collectionName: 'cafe-item', id: item.id)
-                                .then(
-                              (value) {
-                                getItemList(categoryId: categoryId);
-                              },
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  );
-                },
-                separatorBuilder: (context, index) => const Divider(),
-                itemCount: items.length,
-              );
+              return const Text("아무런 데이터가 없습니다");
             }
+            return ListView.separated(
+              itemBuilder: (context, index) {
+                var item = items[index];
+                return ListTile(
+                  title: Text('${item['itemName']} (${item['itemPrice']})'),
+                  subtitle: Text('${item['options']}'),
+                  trailing: PopupMenuButton(
+                    onSelected: (value) async {
+                      switch (value) {
+                        case 'modify':
+                          var result = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => CafeItemAddForm(
+                                    categoryId: item['categoryId'],
+                                    itemId: item.id),
+                              ));
+                          if (result == true) {
+                            setState(() {
+                              getItemList(categoryId: id);
+                            });
+                          }
+                          break;
+                        case 'delete':
+                          var data = await myCafe.delete(
+                              collectionName: 'cafe-item', id: item.id);
+
+                          if (data) {
+                            getItemList(categoryId: id);
+                          }
+                          break;
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: "modify",
+                        child: Text("수정"),
+                      ),
+                      PopupMenuItem(
+                        value: "delete",
+                        child: const Text("삭제"),
+                        onTap: () async {
+                          var data = await myCafe.delete(
+                              collectionName: 'cafe-item', id: item.id);
+
+                          if (data) {
+                            getItemList(categoryId: id);
+                          }
+                        },
+                      )
+                    ],
+                  ),
+                );
+              },
+              separatorBuilder: (context, index) => const Divider(),
+              itemCount: items.length,
+            );
           } else {
             return const Center(
               child: CircularProgressIndicator(),
@@ -334,7 +358,8 @@ class _CafeItemListState extends State<CafeItemList> {
                 var result = await Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => CafeItemAddForm(categoryId: id),
+                    builder: (context) =>
+                        CafeItemAddForm(categoryId: id, itemId: id),
                   ),
                 );
                 if (result == true) {
@@ -362,7 +387,7 @@ class _CafeItemListState extends State<CafeItemList> {
 class CafeItemAddForm extends StatefulWidget {
   String categoryId;
   String? itemId;
-  CafeItemAddForm({super.key, required this.categoryId});
+  CafeItemAddForm({super.key, required this.categoryId, required this.itemId});
 
   @override
   State<CafeItemAddForm> createState() => _CafeItemAddFormState();
@@ -372,7 +397,7 @@ class _CafeItemAddFormState extends State<CafeItemAddForm> {
   late String categoryId;
   String? itemId;
   TextEditingController controllerTitle = TextEditingController();
-  TextEditingController controllerPrise = TextEditingController();
+  TextEditingController controllerPrice = TextEditingController();
   TextEditingController controllerDesc = TextEditingController();
   TextEditingController controllerOptionName = TextEditingController();
   TextEditingController controllerOptionValue = TextEditingController();
@@ -413,6 +438,32 @@ class _CafeItemAddFormState extends State<CafeItemAddForm> {
     super.initState();
     categoryId = widget.categoryId;
     itemId = widget.itemId;
+
+    if (itemId != null) {
+      getItemById(itemId);
+    }
+  }
+
+  void getItemById(itemId) async {
+    var data = await myCafe.get(collectionName: itemCollectionName, id: itemId);
+
+    controllerTitle.text = data['itemName'];
+    controllerPrice.text = data['itemPrice'].toString();
+    controllerDesc.text = data['itemDesc'];
+    isSoldOut = data['itemIsSoldOut'];
+
+    if (data['options'].length != 0) {
+      for (var o in data['options']) {
+        options.add(
+            {'optionName': o['optionName'], 'optionValue': o['optionValue']});
+      }
+
+      setState(() {
+        showOptionList();
+      });
+    }
+
+    return;
   }
 
   @override
@@ -425,7 +476,7 @@ class _CafeItemAddFormState extends State<CafeItemAddForm> {
             onPressed: () async {
               var data = {
                 'itemName': controllerTitle.text,
-                'itemPrice': int.parse(controllerPrise.text),
+                'itemPrice': int.parse(controllerPrice.text),
                 'itemDesc': controllerDesc.text,
                 'itemIsSoldOut': isSoldOut,
                 'categoryId': categoryId,
@@ -452,7 +503,7 @@ class _CafeItemAddFormState extends State<CafeItemAddForm> {
           ),
           TextFormField(
             decoration: const InputDecoration(label: Text('가격')),
-            controller: controllerPrise,
+            controller: controllerPrice,
             keyboardType: TextInputType.number,
           ),
           TextFormField(
