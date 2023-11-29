@@ -19,31 +19,33 @@ class _CafeIncompleteState extends State<CafeIncomplete> {
   dynamic body = const Text('비어있음');
   Future<void> getOrders() async {
     firestore.collection(orderCollectionName).snapshots().listen((event) {
-      if (init) {
-        var orders = event.docs;
-        orderDataList.insertAll(0, orders);
-      } else {
-        var orders = event.docChanges;
-        orderDataList.insertAll(0, orders);
-      }
-      showOrderList();
+      setState(() {
+        if (init) {
+          orderDataList = event.docs;
+          init = false;
+        } else {
+          var lt = event.docChanges;
+          for (var k in lt) {
+            print(k.toString());
+          }
+          orderDataList.insertAll(0, event.docChanges);
+        }
+      });
     });
   }
 
   void showOrderList() {
-    setState(() {
-      body = ListView.separated(
-        itemBuilder: (context, index) {
-          var order = orderDataList[index];
-          return ListTile(
-            leading: Text('${order['orderNumber']}'),
-            title: Text('${order['orderName']}'),
-          );
-        },
-        separatorBuilder: (c, i) => const Divider(),
-        itemCount: orderDataList.length,
-      );
-    });
+    body = ListView.separated(
+      itemBuilder: (context, index) {
+        var order = orderDataList[index];
+        return ListTile(
+          leading: Text('${order['orderNumber']}'),
+          title: Text('${order['orderName']}'),
+        );
+      },
+      separatorBuilder: (c, i) => const Divider(),
+      itemCount: orderDataList.length,
+    );
   }
 
   @override
@@ -55,6 +57,20 @@ class _CafeIncompleteState extends State<CafeIncomplete> {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp();
+    return Scaffold(
+      body: orderDataList.isEmpty
+          ? const Text('없음')
+          : ListView.separated(
+              itemBuilder: (context, index) {
+                var order = orderDataList[index];
+                return ListTile(
+                  leading: Text('${order['orderNumber']}'),
+                  title: Text('${order['orderName']}'),
+                );
+              },
+              separatorBuilder: (c, i) => const Divider(),
+              itemCount: orderDataList.length,
+            ),
+    );
   }
 }
