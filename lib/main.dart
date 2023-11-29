@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_cafe_admin1/cafe_incomplete.dart';
 import 'package:flutter_cafe_admin1/cafe_item.dart';
 import 'package:flutter_cafe_admin1/cafe_result.dart';
 import 'package:flutter_cafe_admin1/order.dart';
@@ -35,7 +36,7 @@ class _NaviState extends State<Navi> {
       label: 'result',
     )
   ];
-  var pages = [const CafeOrder(), const CafeItem(), const CafeResult()];
+  var pages = [const CafeIncomplete(), const CafeItem(), const CafeResult()];
   dynamic body;
 
   @override
