@@ -21,7 +21,7 @@ class _CafeIncompleteState extends State<CafeIncomplete> {
     firestore.collection(orderCollectionName).snapshots().listen((event) {
       if (init) {
         var orders = event.docs;
-        orderDataList = orders;
+        orderDataList.insertAll(0, orders);
       } else {
         var orders = event.docChanges;
         orderDataList.insertAll(0, orders);
